@@ -7,4 +7,3 @@ dependencies:
   - osmnx
   - flake8
   - black
-prefix: /Users/francoisdev/anaconda3/envs/route_manager

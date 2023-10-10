@@ -160,5 +160,4 @@ cython_debug/
 #.idea/
 
 # RouteManager
-graph_cache
 cache
