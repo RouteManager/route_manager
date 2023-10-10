@@ -29,10 +29,8 @@ jobs:
 
     - name: Lint with flake8
       run: |
-        conda activate route_manager
         flake8
 
     - name: Test with PyTest
       run: |
-        conda activate route_manager
         pytest
