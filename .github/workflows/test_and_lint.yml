@@ -1,0 +1,45 @@
+name: Route Manager
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+
+    - name: Install Miniconda
+      uses: conda-incubator/setup-miniconda@v2.2.0
+      with:
+        activate-environment: route_manager
+        environment-file: environment.yml
+        auto-activate-base: false
+
+    - name: Install Flake8
+      run: |
+        conda activate route_manager
+        pip install flake8
+
+    - name: Lint with flake8
+      run: |
+        conda activate route_manager
+        flake8
+
+    - name: Test with PyTest
+      run: |
+        conda activate route_manager
+        pytest
