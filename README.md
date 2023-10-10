@@ -12,6 +12,7 @@ This project uses the OSMnx library to manage routes for different types of trav
 4. Install the necessary packages, including OSMnx: `conda install -c conda-forge osmnx`
 5. Save the conda environment to file: `conda env export --name route_manager --no-builds --from-history > environment.yml`
 6. To recreate the conda environment from file: `conda env create -f environment.yml`
+7. To create a requirements.txt `pip list --format=freeze > requirements.txt`
 
 ## Usage
 
