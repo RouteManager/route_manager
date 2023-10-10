@@ -31,6 +31,7 @@ jobs:
 
     - name: Install Flake8
       run: |
+        conda init zsh
         conda activate route_manager
         pip install flake8
 
