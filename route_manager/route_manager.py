@@ -1,21 +1,53 @@
 import osmnx as ox
 import os
+import numbers
+
+from . import osm_filter as of
+
+
+MAX_DISTANCE = 8000
+MIN_DISTANCE = 1
 
 
 class RouteManager:
-    def __init__(self, lat_lon, distance, route_type, filter_manager):
-        self.filter = filter_manager.get_filter(route_type)
+    def __init__(self, lat_lon, distance, network_type):
+        if not self.is_valid_lat_lon(lat_lon):
+            msg = f"lat_lon must be a valid latitude and longitude tuple"
+            raise (ValueError)
         self.lat_lon = lat_lon
+
+        if not self.is_valid_distance(distance):
+            msg = (
+                f"distance must be numeric, where "
+                f"{MIN_DISTANCE} <= distance <= {MAX_DISTANCE}"
+            )
+            raise ValueError(msg)
         self.distance = distance
-        self.route_type = route_type
+
         self.graph = None
         self.routes = {}
         self.fitness_func = None
 
+        try:
+            of.get_osm_filter(network_type)
+            self.network_type = network_type
+        except ValueError as ve:
+            raise ve
+
+    def is_valid_lat_lon(self, lat_lon):
+        if not isinstance(lat_lon, tuple):
+            return False
+        return abs(lat_lon[0]) <= 90 and abs(lat_lon[1]) <= 180
+
+    def is_valid_distance(self, distance):
+        if not isinstance(distance, numbers.Number):
+            return False
+        return MIN_DISTANCE <= distance <= MAX_DISTANCE
+
     def load_graph(self):
         filename = (
             f"./graph_cache/graph_{self.lat_lon}_{self.distance}_"
-            f"{self.route_type}.graphml"
+            f"{self.network_type}.graphml"
         )
         if os.path.exists(filename):
             self.graph = ox.load_graphml(filename)
@@ -24,7 +56,7 @@ class RouteManager:
                 self.lat_lon,
                 dist=self.distance,
                 simplify=True,
-                custom_filter=self.filter,
+                custom_filter=of.get_filter(self.network_type),
             )
             ox.save_graphml(self.graph, filename)
 

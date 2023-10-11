@@ -1,6 +1,6 @@
 from route_manager.fitness import Fitness
 from route_manager.route_manager import RouteManager
-from route_manager.filter_manager import FilterManager
+from route_manager.osm_filter import FilterManager
 import osmnx as ox
 
 
