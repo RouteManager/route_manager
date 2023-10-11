@@ -1,3 +1,20 @@
+"""
+A module to manage routes for a given location.
+
+Returns
+-------
+RouteManager
+    This class provides methods to add routes, get routes, calculate the
+    shortest path between two points, and calculate fitness for all routes. It
+    uses the OSMnx library to work with OpenStreetMap data.
+
+Raises
+------
+ValueError
+    If lat_lon is not a valid latitude and longitude tuple.
+ValueError
+    If distance is not a valid number
+"""
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 import osmnx as ox
 import os
@@ -48,7 +65,9 @@ class RouteManager:
         network_type: str,
     ) -> None:
         """
-        Initializes the RouteManager with latitude, longitude, distance and
+        Initialize the RouteManager.
+
+        Set the latitude, longitude, distance and
         network type.
 
         Parameters
@@ -130,7 +149,7 @@ class RouteManager:
 
     def construct_filename(self) -> str:
         """
-        Constructs the filename for the graph.
+        Construct the filename for the graph.
 
         Returns
         -------
@@ -144,7 +163,7 @@ class RouteManager:
 
     def load_graph_from_file(self, filename: str) -> None:
         """
-        Loads the graph from a file.
+        Load a graph from file.
 
         Parameters
         ----------
@@ -155,8 +174,9 @@ class RouteManager:
 
     def generate_graph(self) -> None:
         """
-        Download OSM data as a graph for the area described by self.lat_lon
-        and self.distance
+        Download OSM data as a graph.
+
+        Uses the the area described by self.lat_lon and self.distance
         """
         self.graph = ox.graph_from_point(
             self.lat_lon,
@@ -167,7 +187,7 @@ class RouteManager:
 
     def save_graph_to_file(self, filename: str) -> None:
         """
-        Saves the graph to a file.
+        Save the graph to a file.
 
         Parameters
         ----------
@@ -178,8 +198,10 @@ class RouteManager:
 
     def load_graph(self) -> None:
         """
-        Loads the graph from a file if it exists, otherwise generates a new
-        graph and saves it to a file.
+        Load the graph from a file or generates a new one.
+
+        If the graph file exists, this method loads the graph from the file.
+        Otherwise, it generates a new graph and saves it to a file.
         """
         filename = self.construct_filename()
 
@@ -191,7 +213,7 @@ class RouteManager:
 
     def register_fitness_func(self, fitness_func: Callable) -> None:
         """
-        Registers a fitness function.
+        Register a fitness function.
 
         This method sets the `fitness_func` attribute to the provided function.
 
@@ -209,7 +231,7 @@ class RouteManager:
     def add_route(
         self, route_name: str, start_node: int, end_node: int, path: List[int]
     ) -> None:
-        """Adds a route to the routes dictionary.
+        """Add a route to the routes dictionary.
 
         This method calculates the neighbours of the path, creates a subgraph
         for the path and its neighbours, and adds all this information to the
@@ -267,8 +289,7 @@ class RouteManager:
         self, route_name: str, start_node: int, end_node: int
     ) -> None:
         """
-        Adds the shortest path route between the start node and end node to the
-        routes dictionary.
+        Add the shortest path route between the start node and end node.
 
         This method calculates the shortest path between the start node and end
         node, and then calls the `add_route` method to add this route to the
@@ -292,7 +313,7 @@ class RouteManager:
 
     def get_route(self, route_name: str) -> Optional[Dict[str, Any]]:
         """
-        Retrieves a route from the routes dictionary.
+        Retrieve a route from the routes dictionary.
 
         This method checks if a route with the given name exists in the routes
         dictionary. If it does, it returns the route. Otherwise, it returns
@@ -316,7 +337,7 @@ class RouteManager:
         self, start_osm_id: int, end_osm_id: int
     ) -> List[int]:
         """
-        Calculates the shortest path between two nodes in the graph.
+        Calculate the shortest path between two nodes in the graph.
 
         This method uses the `shortest_path` function from the OSMnx library to
         calculate the shortest path between the start node and end node in the
@@ -338,7 +359,7 @@ class RouteManager:
 
     def calc_fitness_for_routes(self) -> None:
         """
-        Calculates fitness for all routes.
+        Calculate fitness for all routes.
 
         This method iterates over all routes in the routes dictionary and
         calculates their fitness using the registered fitness function. If no
