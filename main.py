@@ -1,9 +1,11 @@
+"""Implement route_manager."""
 import route_manager.fitness as fitness
 from route_manager.route_manager import RouteManager
 import osmnx as ox
 
 
 def main():
+    """Implement key features of route_manager."""
     # Wellington Arch. Use static not to burden nominatum
     location_point = (51.5025031, -0.15081986768597055)
 
