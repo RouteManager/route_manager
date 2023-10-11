@@ -1,16 +1,13 @@
-from route_manager.fitness import Fitness
+import route_manager.fitness as fitness
 from route_manager.route_manager import RouteManager
-from route_manager.osm_filter import FilterManager
 import osmnx as ox
 
 
 def main():
-    filter_manager = FilterManager()
-
     # Wellington Arch. Use static not to burden nominatum
     location_point = (51.5025031, -0.15081986768597055)
 
-    route_manager = RouteManager(location_point, 1000, "skate", filter_manager)
+    route_manager = RouteManager(location_point, 1000, "skate")
     route_manager.load_graph()
     fig, ax = ox.plot_graph(route_manager.graph, node_color="r")
 
@@ -34,8 +31,7 @@ def main():
 
     ## ---- Fitness function
 
-    fitness_obj = Fitness()
-    route_manager.register_fitness_func(fitness_obj.calc_route_fitness)
+    route_manager.register_fitness_func(fitness.calc_route_fitness)
     route_manager.add_shortest_path_route("test_route_2", 60852813, 26389730)
     route_manager.calc_fitness_for_routes()
 
