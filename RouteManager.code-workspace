@@ -6,6 +6,6 @@
 	],
 	"settings": {
 		"autoDocstring.startOnNewLine": true,
-		"autoDocstring.docstringFormat": "numpy"
+		"autoDocstring.docstringFormat": "numpy",
 	},
 }

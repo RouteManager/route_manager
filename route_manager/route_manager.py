@@ -16,12 +16,11 @@ ValueError
     If distance is not a valid number
 """
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-import osmnx as ox
+import osmnx
 import os
 import numbers
 import logging
-
-from . import osm_filter as of
+from route_manager import osm_filter
 
 
 # Maximum distance for a route. The distance for a route must be less than or
@@ -100,7 +99,7 @@ class RouteManager:
         self.distance = distance
 
         try:
-            of.get_osm_filter(network_type)
+            osm_filter.get_osm_filter(network_type)
             self.network_type = network_type
         except ValueError:
             raise
@@ -170,7 +169,7 @@ class RouteManager:
         filename : str
             The name of the file from which to load the graph.
         """
-        self.graph = ox.load_graphml(filename)
+        self.graph = osmnx.load_graphml(filename)
 
     def generate_graph(self) -> None:
         """
@@ -178,11 +177,11 @@ class RouteManager:
 
         Uses the the area described by self.lat_lon and self.distance
         """
-        self.graph = ox.graph_from_point(
+        self.graph = osmnx.graph_from_point(
             self.lat_lon,
             dist=self.distance,
             simplify=True,
-            custom_filter=of.get_filter(self.network_type),
+            custom_filter=osm_filter.get_osm_filter(self.network_type),
         )
 
     def save_graph_to_file(self, filename: str) -> None:
@@ -194,7 +193,7 @@ class RouteManager:
         filename : str
             The name of the file to which to save the graph.
         """
-        ox.save_graphml(self.graph, filename)
+        osmnx.save_graphml(self.graph, filename)
 
     def load_graph(self) -> None:
         """
@@ -355,7 +354,7 @@ class RouteManager:
         List[int]
             The shortest path as a list of node IDs.
         """
-        return ox.shortest_path(self.graph, start_osm_id, end_osm_id)
+        return osmnx.shortest_path(self.graph, start_osm_id, end_osm_id)
 
     def calc_fitness_for_routes(self) -> None:
         """
