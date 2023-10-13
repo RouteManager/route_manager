@@ -1,46 +1,133 @@
 """Fitness function to calculate route fitness."""
 import math
+import numbers
 from typing import Dict
+from route_manager.constants import (
+    MAX_INCLINE_PERCENT,
+    MAX_DECLINE_PERCENT,
+    MIN_DISTANCE_VARIANCE,
+    MAX_DISTANCE_VARIANCE,
+    MIN_ROUTE_DISTANCE,
+    MAX_ROUTE_DISTANCE,
+)
 
 
 class Fitness:
-    """
-    A class to calculate the fitness of a route based on a set of criteria.
+    """A class to calculate the fitness of a route based on a set of criteria.
 
     The fitness function is additive in nature, meaning that it sums up the
     weighted scores for each criterion to calculate the total fitness score
     for a route.
 
+    Attributes
+    ----------
+    distance : float
+        Positive value for the desired route distance in meters.
+    dist_variance : float
+        Maximum distance variance, longer or shorter, in meters for the route.
+    max_incline_percent : float
+        Maximum inline for uphills expressed as a percentage.
+    max_decline_percent : float
+        Maximum decline for downhills expressed as a percentage
+
     Methods
     -------
     calculate_fitness():
         Calculates the fitness of a route based on the set criteria.
-    calculate_desired_distance_score():
+    _calculate_desired_distance_score():
         Calculates the score for the desired distance criterion.
-    calculate_road_type_score():
+    _calculate_road_type_score():
         Calculates the score for the road type criterion.
-    calculate_number_of_junctions_score():
+    _calculate_number_of_junctions_score():
         Calculates the score for the number of junctions criterion.
-    calculate_complexity_of_junctions_score():
+    _calculate_complexity_of_junctions_score():
         Calculates the score for the complexity of junctions criterion.
-    calculate_turns_score():
+    _calculate_turns_score():
         Calculates the score for the turns criterion.
-    calculate_uphill_sections_score():
+    _calculate_uphill_sections_score():
         Calculates the score for the uphill sections criterion.
-    calculate_downhill_sections_score():
+    _calculate_downhill_sections_score():
         Calculates the score for the downhill sections criterion.
-    calculate_number_of_lanes_score():
+    _calculate_number_of_lanes_score():
         Calculates the score for the number of lanes criterion.
-    calculate_one_way_routes_score():
+    _calculate_one_way_routes_score():
         Calculates the score for the one-way routes criterion.
-    calculate_narrow_roads_score():
+    _calculate_narrow_roads_score():
         Calculates the score for two-way traffic on narrow roads criterion.
-    calculate_downhills_with_lights():
+    _calculate_downhills_with_lights():
         Calculates the score for downhill roads with traffic lights criterion.
     """
 
-    def __init__(self):
-        """Construct RouteFitnessFunction."""
+    def __init__(
+        self,
+        distance: numbers.Number,
+        dist_variance: numbers.Number,
+        max_incline_percent: numbers.Number,
+        max_decline_percent: numbers.Number,
+    ):
+        """Create Fitness instance.
+
+        Parameters
+        ----------
+        distance : numbers.Number
+            The desired route distance in meters,
+            where MIN_ROUTE_DISTANCE < distance <= MAX_ROUTE_DISTANCE
+        dist_variance : numbers.Number
+            The allowable variance for route distance, where
+            MIN_DISTANCE_VARIANCE <= dist_variance <= MAX_DISTANCE_VARIANCE
+        max_incline_percent : numbers.Number
+            _description_
+        max_decline_percent : numbers.Number
+            _description_
+
+        Raises
+        ------
+        ValueError
+            If distance is not of type `numbers.Number`, or outside of the
+            valid range.
+        ValueError
+            If dist_variance is not of type `numbers.Number`, or outside of the
+            valid range.
+        ValueError
+            If max_incline_percent is not of type `numbers.Number`, or outside
+            of the valid range.
+        ValueError
+            If max_decline_percent is not of type `numbers.Number`, or outside
+            of the valid range.
+        """
+        if not self._is_valid_distance(distance):
+            msg = (
+                f"{distance} must be "
+                f"MIN_ROUTE_DISTANCE <= distance <= MAX_ROUTE_DISTANCE"
+            )
+            raise ValueError(msg)
+        self.distance = distance
+
+        if not self._is_valid_dist_variance(dist_variance):
+            msg = (
+                f"{dist_variance} must be "
+                f"MIN_DISTANCE_VARIANCE <= dist_variance <= "
+                f"MAX_DISTANCE_VARIANCE"
+            )
+            raise ValueError(msg)
+        self.dist_variance = dist_variance
+
+        if not self._is_max_inclide_percent_valid(max_incline_percent):
+            msg = (
+                f"{max_incline_percent} must be a float value, where"
+                f"0 <= max_incline_percent <= MAX_INCLINE_PERCENT"
+            )
+            raise ValueError(msg)
+        self.max_inclide_percent = max_incline_percent
+
+        if not self._is_max_decline_percent_valid(max_decline_percent):
+            msg = (
+                f"{max_decline_percent} must be a float value, where"
+                f"0 <= max_decline_percent <= MAX_DECLINE_PERCENT"
+            )
+            raise ValueError(msg)
+        self.max_decline_percent = max_decline_percent
+
         self.weights = {
             "desired_distance": 1,
             "road_type": 1,
@@ -54,6 +141,276 @@ class Fitness:
             "narrow_roads": 1,
             "downhills_with_lights": 1,
         }
+
+    def _is_max_inclide_percent_valid(
+        self, max_inclide_percent: numbers.Number
+    ):
+        """Validate maximum incline.
+
+        Parameters
+        ----------
+        max_inclide_percent : numbers.Number
+            Max percentag inclide as a percentage
+
+        Returns
+        -------
+        bool
+            True if the incline is valid.
+        """
+        if not isinstance(max_inclide_percent, numbers.Number):
+            return False
+        return 0 <= max_inclide_percent <= MAX_INCLINE_PERCENT
+
+    def _is_max_decline_percent_valid(
+        self, max_decline_percent: numbers.Number
+    ):
+        """
+        Validate maximum decline.
+
+        Parameters
+        ----------
+        max_decline_percent : float
+            Max decline inclide as a percentage
+
+        Returns
+        -------
+        bool
+            True if the decline is valid.
+        """
+        if not isinstance(max_decline_percent, numbers.Number):
+            return False
+        return 0 <= max_decline_percent <= MAX_DECLINE_PERCENT
+
+    def _is_valid_dist_variance(self, dist_variance: numbers.Number):
+        """
+        Validate distance variance.
+
+        Parameters
+        ----------
+        dist_variance : float
+            The maximum allowed distance variance.
+
+        Returns
+        -------
+        bool
+            True id the dist_variance is within allowed parameters.
+        """
+        if not isinstance(dist_variance, numbers.Number):
+            return False
+        return MIN_DISTANCE_VARIANCE <= dist_variance <= MAX_DISTANCE_VARIANCE
+
+    def _is_valid_distance(self, distance: numbers.Number):
+        """
+        Validate distance attribute.
+
+        Parameters
+        ----------
+        distance : float
+            Desired route distance
+
+        Returns
+        -------
+        bool
+            True if the distance is within allowed parameters.
+        """
+        if not isinstance(distance, numbers.Number):
+            return False
+        return MIN_ROUTE_DISTANCE <= distance <= MAX_ROUTE_DISTANCE
+
+    def _calculate_desired_distance_score(self) -> float:
+        """
+        Calculate and return the score for the desired distance criterion.
+
+        This method calculates the score based on how close the route's
+        distance is to the desired distance. If the route's distance is
+        within a set error margin of the desired distance, a higher score is
+        returned. If it's outside this margin, the route is deemed unfit and a
+        score of negative infinity (`float('-inf')`) is returned.
+
+        Returns
+        -------
+        float
+            The score for the desired distance criterion. If the route's
+            distance is outside the set error margin of the desired distance,
+            it returns negative infinity (`float('-inf')`).
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_road_type_score(self) -> float:
+        """
+        Calculate and return the score for the road type criterion.
+
+        This method calculates the score based on the types of roads in the
+        route. Different types of roads have different fitness impacts. Some
+        roads are preferable to others and contribute to a higher score.
+
+        Returns
+        -------
+        float
+            The score for the road type criterion. The score is higher for
+            preferable road types and lower for less preferable ones.
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_number_of_junctions_score(self) -> float:
+        """
+        Calculate and return the score for the number of junctions criterion.
+
+        This method calculates the score based on the number of junctions along
+        the route. Fewer junctions are generally preferable and contribute to a
+        higher score.
+
+        Returns
+        -------
+        float
+            The score for the number of junctions criterion. The score is
+            higher for routes with fewer junctions.
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_complexity_of_junctions_score(self) -> float:
+        """
+        Calculate and return the score for complex junctions criterion.
+
+        This method calculates the score based on the complexity of junctions
+        along the route. Less complex junctions are generally preferable and
+        contribute to a higher score.
+
+        Returns
+        -------
+        float
+            The score for the complexity of junctions criterion. The score is
+            higher for routes with less complex junctions.
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_turns_score(self) -> float:
+        """
+        Calculate and return the score for the turns criterion.
+
+        This method calculates the score based on the turns along the route.
+        Certain turns, such as not crossing other roads when turning from one
+        road into another, are generally preferable and contribute to a higher
+        score.
+
+        Returns
+        -------
+        float
+            The score for the turns criterion. The score is higher for routes
+            with preferable turns.
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_uphill_sections_score(self) -> float:
+        """
+        Calculate and return the score for the uphill sections criterion.
+
+        This method calculates the score based on the uphill sections along the
+        route. Uphill sections negatively impact route fitness. If it is
+        steeper than a certain angle, it is deemed unfit and a score of
+        negative infinity (`float('-inf')`) is returned.
+
+        Returns
+        -------
+        float
+            The score for the uphill sections criterion. If an uphill section
+            is steeper than a certain angle, it returns negative infinity
+              (`float('-inf')`).
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_downhill_sections_score(self) -> float:
+        """
+        Calculate and return the score for the downhill sections criterion.
+
+        This method calculates the score based on the downhill sections along
+        the route. Downhill sections positively impact fitness, up to a certain
+        limit. Exceeding that limit deems it unfit and a score of negative
+        infinity (`float('-inf')`) is returned.
+
+        Returns
+        -------
+        float
+            The score for the downhill sections criterion. If a downhill
+            section exceeds a certain limit, it returns negative infinity
+            (`float('-inf')`).
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_number_of_lanes_score(self) -> float:
+        """
+        Calculate and return the score for the number of lanes criterion.
+
+        This method calculates the score based on the number of lanes on the
+        roads in the route. More lanes generally contribute to a higher score.
+
+        Returns
+        -------
+        float
+            The score for the number of lanes criterion. The score is higher
+            for routes with more lanes.
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_one_way_routes_score(self) -> float:
+        """
+        Calculate and return the score for the one-way routes criterion.
+
+        This method calculates the score based on the presence of one-way
+        routes in the route. One-way routes generally contribute to a higher
+        score.
+
+        Returns
+        -------
+        float
+            The score for the one-way routes criterion. The score is higher for
+            routes with more one-way routes.
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_narrow_roads_score(self) -> float:
+        """
+        Calculate and return the score for the two-way roads.
+
+        This method calculates the score based on the presence of two-way
+        traffic on narrow roads in the route. Two-way traffic on narrow roads
+        generally contributes to a lower score.
+
+        Returns
+        -------
+        float
+            The score for the two-way traffic on narrow roads criterion. The
+            score is lower for routes with more two-way traffic on narrow roads.
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
+
+    def _calculate_downhills_with_lights(self) -> float:
+        """
+        Calculate and return the score for the downhill roads with lights.
+
+        This method calculates the score based on the presence of downhill
+        roads with traffic lights in the route. Downhill roads with traffic
+        lights generally contribute to a lower score.
+
+        Returns
+        -------
+        float
+            The score for the downhill roads with traffic lights criterion. The
+            score is lower for routes with more downhill roads with traffic
+            lights.
+        """
+        # TODO: Implement this method based on your specific requirements
+        return 0
 
     def calculate_fitness(self, route_attributes: Dict) -> float:
         """
@@ -81,17 +438,17 @@ class Fitness:
 
         # Calculate scores for each criterion based on the route and graph
         scores = {
-            "desired_distance": self.calculate_desired_distance_score(),
-            "road_type": self.calculate_road_type_score(),
-            "number_of_junctions": self.calculate_number_of_junctions_score(),
-            "junctions": self.calculate_complexity_of_junctions_score(),
-            "turns": self.calculate_turns_score(),
-            "uphill_sections": self.calculate_uphill_sections_score(),
-            "downhill_sections": self.calculate_downhill_sections_score(),
-            "number_of_lanes": self.calculate_number_of_lanes_score(),
-            "one_way_routes": self.calculate_one_way_routes_score(),
-            "narrow_roads": self.calculate_narrow_roads_score(),
-            "downhills_with_lights": self.calculate_downhills_with_lights(),
+            "desired_distance": self._calculate_desired_distance_score(),
+            "road_type": self._calculate_road_type_score(),
+            "number_of_junctions": self._calculate_number_of_junctions_score(),
+            "junctions": self._calculate_complexity_of_junctions_score(),
+            "turns": self._calculate_turns_score(),
+            "uphill_sections": self._calculate_uphill_sections_score(),
+            "downhill_sections": self._calculate_downhill_sections_score(),
+            "number_of_lanes": self._calculate_number_of_lanes_score(),
+            "one_way_routes": self._calculate_one_way_routes_score(),
+            "narrow_roads": self._calculate_narrow_roads_score(),
+            "downhills_with_lights": self._calculate_downhills_with_lights(),
         }
 
         # Check if any hard criteria are not met
@@ -105,198 +462,3 @@ class Fitness:
             fitness += weight * scores[criterion]
 
         return fitness
-
-    def calculate_desired_distance_score(self) -> float:
-        """
-        Calculate and return the score for the desired distance criterion.
-
-        This method calculates the score based on how close the route's
-        distance is to the desired distance. If the route's distance is
-        within a set error margin of the desired distance, a higher score is
-        returned. If it's outside this margin, the route is deemed unfit and a
-        score of negative infinity (`float('-inf')`) is returned.
-
-        Returns
-        -------
-        float
-            The score for the desired distance criterion. If the route's
-            distance is outside the set error margin of the desired distance,
-            it returns negative infinity (`float('-inf')`).
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_road_type_score(self) -> float:
-        """
-        Calculate and return the score for the road type criterion.
-
-        This method calculates the score based on the types of roads in the
-        route. Different types of roads have different fitness impacts. Some
-        roads are preferable to others and contribute to a higher score.
-
-        Returns
-        -------
-        float
-            The score for the road type criterion. The score is higher for
-            preferable road types and lower for less preferable ones.
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_number_of_junctions_score(self) -> float:
-        """
-        Calculate and return the score for the number of junctions criterion.
-
-        This method calculates the score based on the number of junctions along
-        the route. Fewer junctions are generally preferable and contribute to a
-        higher score.
-
-        Returns
-        -------
-        float
-            The score for the number of junctions criterion. The score is
-            higher for routes with fewer junctions.
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_complexity_of_junctions_score(self) -> float:
-        """
-        Calculate and return the score for complex junctions criterion.
-
-        This method calculates the score based on the complexity of junctions
-        along the route. Less complex junctions are generally preferable and
-        contribute to a higher score.
-
-        Returns
-        -------
-        float
-            The score for the complexity of junctions criterion. The score is
-            higher for routes with less complex junctions.
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_turns_score(self) -> float:
-        """
-        Calculate and return the score for the turns criterion.
-
-        This method calculates the score based on the turns along the route.
-        Certain turns, such as not crossing other roads when turning from one
-        road into another, are generally preferable and contribute to a higher
-        score.
-
-        Returns
-        -------
-        float
-            The score for the turns criterion. The score is higher for routes
-            with preferable turns.
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_uphill_sections_score(self) -> float:
-        """
-        Calculate and return the score for the uphill sections criterion.
-
-        This method calculates the score based on the uphill sections along the
-        route. Uphill sections negatively impact route fitness. If it is
-        steeper than a certain angle, it is deemed unfit and a score of
-        negative infinity (`float('-inf')`) is returned.
-
-        Returns
-        -------
-        float
-            The score for the uphill sections criterion. If an uphill section
-            is steeper than a certain angle, it returns negative infinity
-              (`float('-inf')`).
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_downhill_sections_score(self) -> float:
-        """
-        Calculate and return the score for the downhill sections criterion.
-
-        This method calculates the score based on the downhill sections along
-        the route. Downhill sections positively impact fitness, up to a certain
-        limit. Exceeding that limit deems it unfit and a score of negative
-        infinity (`float('-inf')`) is returned.
-
-        Returns
-        -------
-        float
-            The score for the downhill sections criterion. If a downhill
-            section exceeds a certain limit, it returns negative infinity
-            (`float('-inf')`).
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_number_of_lanes_score(self) -> float:
-        """
-        Calculate and return the score for the number of lanes criterion.
-
-        This method calculates the score based on the number of lanes on the
-        roads in the route. More lanes generally contribute to a higher score.
-
-        Returns
-        -------
-        float
-            The score for the number of lanes criterion. The score is higher
-            for routes with more lanes.
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_one_way_routes_score(self) -> float:
-        """
-        Calculate and return the score for the one-way routes criterion.
-
-        This method calculates the score based on the presence of one-way
-        routes in the route. One-way routes generally contribute to a higher
-        score.
-
-        Returns
-        -------
-        float
-            The score for the one-way routes criterion. The score is higher for
-            routes with more one-way routes.
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_narrow_roads_score(self) -> float:
-        """
-        Calculate and return the score for the two-way roads.
-
-        This method calculates the score based on the presence of two-way
-        traffic on narrow roads in the route. Two-way traffic on narrow roads
-        generally contributes to a lower score.
-
-        Returns
-        -------
-        float
-            The score for the two-way traffic on narrow roads criterion. The
-            score is lower for routes with more two-way traffic on narrow roads.
-        """
-        # Implement this method based on your specific requirements
-        return 0
-
-    def calculate_downhills_with_lights(self) -> float:
-        """
-        Calculate and return the score for the downhill roads with lights.
-
-        This method calculates the score based on the presence of downhill
-        roads with traffic lights in the route. Downhill roads with traffic
-        lights generally contribute to a lower score.
-
-        Returns
-        -------
-        float
-            The score for the downhill roads with traffic lights criterion. The
-            score is lower for routes with more downhill roads with traffic
-            lights.
-        """
-        # Implement this method based on your specific requirements
-        return 0

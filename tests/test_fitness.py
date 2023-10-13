@@ -21,7 +21,7 @@ def test_calculate_fitness():
     # from your_module import calc_route_fitness
 
     route_attributes = {}  # Add some test data here
-    fit = Fitness()
+    fit = Fitness(1000, 1000 * 0.5, 0.05, 0.05)
 
     # Call the function with the test data
     result = fit.calculate_fitness(route_attributes)

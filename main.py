@@ -10,7 +10,7 @@ def main():
     location_point = (51.5025031, -0.15081986768597055)
 
     route_manager = RouteManager(location_point, 1000, "skate")
-    route_manager.load_graph()
+    route_manager._load_graph()
     fig, ax = ox.plot_graph(route_manager.graph, node_color="r")
 
     route_manager.add_shortest_path_route("test_route", 60852813, 26389730)

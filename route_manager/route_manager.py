@@ -21,16 +21,14 @@ import os
 import numbers
 import logging
 from route_manager import osm_filter, fitness
-
-
-# Maximum distance for a route. The distance for a route must be less than or
-# equal to this value. BEWARE: Increasing this value will result in very large
-# downloads form OSM and may get your IP banned.
-MAX_DISTANCE = 7000
-
-# Minimum distance for a route. The distance for a route must be greater than
-# or equal to this value.
-MIN_DISTANCE = 1
+from route_manager.constants import (
+    MIN_ROUTE_DISTANCE,
+    MAX_ROUTE_DISTANCE,
+    MIN_LAT,
+    MAX_LAT,
+    MIN_LON,
+    MAX_LON,
+)
 
 
 class RouteManager:
@@ -62,7 +60,7 @@ class RouteManager:
         lat_lon: Tuple[float, float],
         distance: numbers.Number,
         network_type: str,
-        fitness_func=fitness.Fitness(),
+        fitness_func=None,
     ) -> None:
         """
         Initialize the RouteManager.
@@ -86,19 +84,20 @@ class RouteManager:
         ValueError
             If distance is not a valid number
         """
-        if not self.is_valid_lat_lon(lat_lon):
+        if not self._is_valid_lat_lon(lat_lon):
             msg = f"lat_lon must be a valid latitude and longitude tuple"
             raise ValueError(msg)
         self.lat_lon = lat_lon
 
-        if not self.is_valid_distance(distance):
+        if not self._is_valid_distance(distance):
             msg = (
                 f"distance must be numeric, where "
-                f"{MIN_DISTANCE} <= distance <= {MAX_DISTANCE}"
+                f"{MIN_ROUTE_DISTANCE} <= distance <= {MAX_ROUTE_DISTANCE}"
             )
             raise ValueError(msg)
         self.distance = distance
 
+        # Set an OSM filter matching the required network type
         try:
             osm_filter.get_osm_filter(network_type)
             self.network_type = network_type
@@ -107,9 +106,17 @@ class RouteManager:
 
         self.graph = None
         self.routes = {}
-        self.fitness_func = None
 
-    def is_valid_lat_lon(self, lat_lon: Tuple[float, float]) -> bool:
+        # Set the fitness function used to caluclate route fitness
+        try:
+            if not fitness_func:
+                self.fitness_func = fitness.Fitness(
+                    distance, distance * 0.05, 0.05, 0.05
+                )
+        except ValueError:
+            raise
+
+    def _is_valid_lat_lon(self, lat_lon: Tuple[float, float]) -> bool:
         """
         Check if the given latitude and longitude are valid.
 
@@ -121,14 +128,17 @@ class RouteManager:
         Returns
         -------
         bool
-            True if the latitude is between -90 and 90 degrees, and the
-            longitude is between -180 and 180 degrees. False otherwise.
+            True if the latitude is between MIN_LAT and MAX_LAT degrees, and the
+            longitude is between MIN_LON and MAX_LON degrees. False otherwise.
         """
         if not isinstance(lat_lon, tuple):
             return False
-        return abs(lat_lon[0]) <= 90 and abs(lat_lon[1]) <= 180
+        return (
+            MIN_LAT <= lat_lon[0] <= MAX_LAT
+            and MIN_LON <= lat_lon[1] <= MAX_LON
+        )
 
-    def is_valid_distance(self, distance: numbers.Number) -> bool:
+    def _is_valid_distance(self, distance: numbers.Number) -> bool:
         """
         Check if the given distance is valid.
 
@@ -145,9 +155,9 @@ class RouteManager:
         """
         if not isinstance(distance, numbers.Number):
             return False
-        return MIN_DISTANCE <= distance <= MAX_DISTANCE
+        return MIN_ROUTE_DISTANCE <= distance <= MAX_ROUTE_DISTANCE
 
-    def construct_filename(self) -> str:
+    def _construct_filename(self) -> str:
         """
         Construct the filename for the graph.
 
@@ -161,7 +171,7 @@ class RouteManager:
             f"{self.network_type}.graphml"
         )
 
-    def load_graph_from_file(self, filename: str) -> None:
+    def _load_graph_from_file(self, filename: str) -> None:
         """
         Load a graph from file.
 
@@ -172,7 +182,7 @@ class RouteManager:
         """
         self.graph = osmnx.load_graphml(filename)
 
-    def generate_graph(self) -> None:
+    def _generate_graph(self) -> None:
         """
         Download OSM data as a graph.
 
@@ -185,7 +195,7 @@ class RouteManager:
             custom_filter=osm_filter.get_osm_filter(self.network_type),
         )
 
-    def save_graph_to_file(self, filename: str) -> None:
+    def _save_graph_to_file(self, filename: str) -> None:
         """
         Save the graph to a file.
 
@@ -196,20 +206,20 @@ class RouteManager:
         """
         osmnx.save_graphml(self.graph, filename)
 
-    def load_graph(self) -> None:
+    def _load_graph(self) -> None:
         """
         Load the graph from a file or generates a new one.
 
         If the graph file exists, this method loads the graph from the file.
         Otherwise, it generates a new graph and saves it to a file.
         """
-        filename = self.construct_filename()
+        filename = self._construct_filename()
 
         if os.path.exists(filename):
-            self.load_graph_from_file(filename)
+            self._load_graph_from_file(filename)
         else:
-            self.generate_graph()
-            self.save_graph_to_file(filename)
+            self._generate_graph()
+            self._save_graph_to_file(filename)
 
     def register_fitness_func(self, fitness_func: Callable) -> None:
         """

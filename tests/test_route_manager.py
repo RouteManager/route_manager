@@ -2,7 +2,11 @@
 import pytest
 import logging
 from unittest.mock import MagicMock, patch
-from route_manager.route_manager import RouteManager, MIN_DISTANCE, MAX_DISTANCE
+from route_manager.route_manager import (
+    RouteManager,
+    MIN_ROUTE_DISTANCE,
+    MAX_ROUTE_DISTANCE,
+)
 
 
 WELLINGTON_ARCH = (51.5025031, -0.15081986768597055)
@@ -26,7 +30,9 @@ def rm_ldn_skate():
 
 
 @pytest.mark.parametrize("location", [WELLINGTON_ARCH, (90, 180, (-90, -180))])
-@pytest.mark.parametrize("distance", [1000, MIN_DISTANCE, MAX_DISTANCE])
+@pytest.mark.parametrize(
+    "distance", [1000, MIN_ROUTE_DISTANCE, MAX_ROUTE_DISTANCE]
+)
 @pytest.mark.parametrize(
     "network_type",
     ["skate", "drive", "drive_service", "walk", "bike", "all", "all_private"],
@@ -55,7 +61,7 @@ def test_valid_init(location, distance, network_type):
 
 @pytest.mark.parametrize("location", [WELLINGTON_ARCH])
 @pytest.mark.parametrize(
-    "distance", [MIN_DISTANCE - 1, MAX_DISTANCE + 1, "foo"]
+    "distance", [MIN_ROUTE_DISTANCE - 1, MAX_ROUTE_DISTANCE + 1, "foo"]
 )
 @pytest.mark.parametrize("network_type", ["skate"])
 def test_invalid_distance_init(location, distance, network_type):
@@ -79,7 +85,7 @@ def test_invalid_distance_init(location, distance, network_type):
 
 
 @pytest.mark.parametrize("location", [WELLINGTON_ARCH])
-@pytest.mark.parametrize("distance", [MAX_DISTANCE])
+@pytest.mark.parametrize("distance", [MAX_ROUTE_DISTANCE])
 @pytest.mark.parametrize("network_type", ["foo", "None"])
 def test_invalid_network_type_init(location, distance, network_type):
     """
@@ -105,7 +111,7 @@ def test_invalid_network_type_init(location, distance, network_type):
     "location",
     [(-91, 50), (91, 50), (90, 181), (90, -181), (-91, -181), "foo"],
 )
-@pytest.mark.parametrize("distance", [MAX_DISTANCE])
+@pytest.mark.parametrize("distance", [MAX_ROUTE_DISTANCE])
 @pytest.mark.parametrize("network_type", ["skate"])
 def test_invalid_lat_lon_init(location, distance, network_type):
     """
@@ -131,7 +137,7 @@ def test_init_graph(rm_ldn_skate):
     """
     Test the initialization of the graph in a RouteManager instance.
 
-    This test checks that the `load_graph` method of a RouteManager instance
+    This test checks that the `_load_graph` method of a RouteManager instance
     correctly initializes the graph attribute.
 
     Parameters
@@ -139,7 +145,7 @@ def test_init_graph(rm_ldn_skate):
     rm_ldn_skate : RouteManager
         A RouteManager instance.
     """
-    rm_ldn_skate.load_graph()
+    rm_ldn_skate._load_graph()
     assert rm_ldn_skate.graph is not None
 
 
@@ -302,9 +308,9 @@ def test_calc_fitness_for_routes_no_fitness_func(rm_ldn_skate):
         mock_warning.assert_called_once_with("Fitness function not registered.")
 
 
-def test_load_graph_file_exists(rm_ldn_skate):
+def test__load_graph_file_exists(rm_ldn_skate):
     """
-    Test load_graph method when the file exists.
+    Test _load_graph method when the file exists.
 
     This test checks if the correct methods are called when the graph file
     exists.
@@ -321,29 +327,29 @@ def test_load_graph_file_exists(rm_ldn_skate):
     Notes
     -----
     The test uses the `patch` function from the `mock` module to replace the
-    `os.path.exists`, `self.construct_filename`, and `self.load_graph_from_file`
-    methods with mocks. It then asserts that these mocks were called with the
-    expected arguments.
+    `os.path.exists`, `self._construct_filename`, and
+    `self._load_graph_from_file` methods with mocks. It then asserts that these
+    mocks were called with the expected arguments.
     """
-    # Mock the construct_filename method to return a specific filename
+    # Mock the _construct_filename method to return a specific filename
     filename = "test_filename"
-    rm_ldn_skate.construct_filename = MagicMock(return_value=filename)
+    rm_ldn_skate._construct_filename = MagicMock(return_value=filename)
 
     # Mock os.path.exists to return True
     with patch("os.path.exists", return_value=True):
-        # Mock the load_graph_from_file method
-        with patch.object(rm_ldn_skate, "load_graph_from_file") as mock_load:
+        # Mock the _load_graph_from_file method
+        with patch.object(rm_ldn_skate, "_load_graph_from_file") as mock_load:
             # Call the method
-            rm_ldn_skate.load_graph()
+            rm_ldn_skate._load_graph()
 
-            # Assert that load_graph_from_file was called with the correct
+            # Assert that _load_graph_from_file was called with the correct
             # argument
             mock_load.assert_called_once_with(filename)
 
 
-def test_load_graph_file_not_exists(rm_ldn_skate):
+def test__load_graph_file_not_exists(rm_ldn_skate):
     """
-    Test load_graph method when the file does not exist.
+    Test _load_graph method when the file does not exist.
 
     This test checks if the correct methods are called when the graph file does
     not exist.
@@ -360,34 +366,34 @@ def test_load_graph_file_not_exists(rm_ldn_skate):
     Notes
     -----
     The test uses the `patch` function from the `mock` module to replace the
-    `os.path.exists`,`self.construct_filename`, `self.generate_graph`, and
-    `self.save_graph_to_file` methods with mocks. It then asserts that these
+    `os.path.exists`,`self._construct_filename`, `self._generate_graph`, and
+    `self._save_graph_to_file` methods with mocks. It then asserts that these
     mocks were called with the expected arguments.
     """
-    # Mock the construct_filename method to return a specific filename
+    # Mock the _construct_filename method to return a specific filename
     filename = "test_filename"
-    rm_ldn_skate.construct_filename = MagicMock(return_value=filename)
+    rm_ldn_skate._construct_filename = MagicMock(return_value=filename)
 
     # Mock os.path.exists to return False
     with patch("os.path.exists", return_value=False):
-        # Mock the generate_graph and save_graph_to_file methods
+        # Mock the _generate_graph and _save_graph_to_file methods
         with patch.object(
-            rm_ldn_skate, "generate_graph"
-        ) as mock_generate_graph, patch.object(
-            rm_ldn_skate, "save_graph_to_file"
-        ) as mock_save_graph:
+            rm_ldn_skate, "_generate_graph"
+        ) as mock__generate_graph, patch.object(
+            rm_ldn_skate, "_save_graph_to_file"
+        ) as mock__save_graph:
             # Call the method
-            rm_ldn_skate.load_graph()
+            rm_ldn_skate._load_graph()
 
-            # Assert that generate_graph and save_graph_to_file were called
+            # Assert that _generate_graph and _save_graph_to_file were called
             # with the correct arguments
-            mock_generate_graph.assert_called_once()
-            mock_save_graph.assert_called_once_with(filename)
+            mock__generate_graph.assert_called_once()
+            mock__save_graph.assert_called_once_with(filename)
 
 
-def test_generate_graph(rm_ldn_skate):
+def test__generate_graph(rm_ldn_skate):
     """
-    Test generate_graph method.
+    Test _generate_graph method.
 
     This test checks if the correct methods are called with the correct
     arguments.
@@ -417,7 +423,7 @@ def test_generate_graph(rm_ldn_skate):
         "route_manager.osm_filter.get_osm_filter"
     ) as mock_filter:
         # Call the method
-        rm_ldn_skate.generate_graph()
+        rm_ldn_skate._generate_graph()
 
         # Assert that get_filter was called with the correct argument
         mock_filter.assert_called_once_with(rm_ldn_skate.network_type)
@@ -434,9 +440,9 @@ def test_generate_graph(rm_ldn_skate):
 from unittest import mock
 
 
-def test_save_graph_to_file(rm_ldn_skate):
+def test__save_graph_to_file(rm_ldn_skate):
     """
-    Test save_graph_to_file method.
+    Test _save_graph_to_file method.
 
     This test checks if the correct method is called with the correct arguments.
 
@@ -459,7 +465,7 @@ def test_save_graph_to_file(rm_ldn_skate):
     with mock.patch("osmnx.save_graphml") as mock_save:
         # Call the method with a test filename
         filename = "test_filename"
-        rm_ldn_skate.save_graph_to_file(filename)
+        rm_ldn_skate._save_graph_to_file(filename)
 
         # Assert that save_graphml was called with the correct arguments
         mock_save.assert_called_once_with(rm_ldn_skate.graph, filename)
