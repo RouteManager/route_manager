@@ -20,7 +20,7 @@ import osmnx
 import os
 import numbers
 import logging
-from route_manager import osm_filter
+from route_manager import osm_filter, fitness
 
 
 # Maximum distance for a route. The distance for a route must be less than or
@@ -53,8 +53,8 @@ class RouteManager:
         Graph for the route. Initialized as None.
     routes : dict
         Dictionary to store routes. Initialized as an empty dictionary.
-    fitness_func : NoneType
-        Fitness function for the route. Initialized as None.
+    fitness_func : Fitness()
+        Fitness function for the route. Initialized as Fitness().
     """
 
     def __init__(
@@ -62,6 +62,7 @@ class RouteManager:
         lat_lon: Tuple[float, float],
         distance: numbers.Number,
         network_type: str,
+        fitness_func=fitness.Fitness(),
     ) -> None:
         """
         Initialize the RouteManager.
@@ -372,4 +373,6 @@ class RouteManager:
             logging.warning("Fitness function not registered.")
             return
         for route_name, route_attributes in self.routes.items():
-            route_attributes["fitness"] = self.fitness_func(route_attributes)
+            fitness = self.fitness_func.calculate_fitness(route_attributes)
+            route_attributes["fitness"] = fitness
+            print(f"Fitness for route {route_name}: {fitness}")

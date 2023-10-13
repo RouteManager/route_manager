@@ -1,9 +1,9 @@
 """Test cases for fitnes function."""
-from route_manager.fitness import calc_route_fitness
+from route_manager.fitness import Fitness
 import pytest
 
 
-def test_calc_route_fitness():
+def test_calculate_fitness():
     """
     Calculate route fitness based on its attributes.
 
@@ -15,15 +15,16 @@ def test_calc_route_fitness():
     Returns
     -------
     int
-        An integer value representing the fitness of the route.
+        An float value representing the fitness of the route.
     """
     # Import the module where your function is defined
     # from your_module import calc_route_fitness
 
     route_attributes = {}  # Add some test data here
+    fit = Fitness()
 
     # Call the function with the test data
-    result = calc_route_fitness(route_attributes)
+    result = fit.calculate_fitness(route_attributes)
 
     # Assert that the function returns the expected result
-    assert result == 10, "Expected result to be 10"
+    assert result == 0.0, "Expected result to be 0.0"

@@ -243,7 +243,7 @@ def test_calc_fitness_for_routes(rm_ldn_skate):
         A RouteManager instance.
     """
     # Mock the fitness_func and routes attributes
-    rm_ldn_skate.fitness_func = MagicMock(return_value=15)
+    rm_ldn_skate.fitness_func.calculate_fitness = MagicMock(return_value=15)
 
     # Call the method
     start_node = 60852813
@@ -256,7 +256,9 @@ def test_calc_fitness_for_routes(rm_ldn_skate):
     # Assert that the fitness_func was called with the correct arguments
     for route_name, route_attributes in rm_ldn_skate.routes.items():
         # Get the args of the last call to mock
-        last_call_args = rm_ldn_skate.fitness_func.call_args[0]
+        last_call_args = rm_ldn_skate.fitness_func.calculate_fitness.call_args[
+            0
+        ]
 
         assert last_call_args[0]["start_node"] == route_attributes["start_node"]
         assert last_call_args[0]["end_node"] == route_attributes["end_node"]
