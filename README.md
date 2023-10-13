@@ -14,6 +14,8 @@ This project uses the OSMnx library to manage routes for different types of trav
 6. To recreate the conda environment from file: `conda env create -f environment.yml`
 7. To create a requirements.txt `pip list --format=freeze > requirements.txt`
 
+NB: Conda installed sqlite3 with Python 3.11 on OSX, but there was some configuration issue with `libsqlite`. Force reinstalling it solved the isse `conda install -c conda-forge libsqlite --force-reinstall`
+
 ## Usage
 
 Import and use the RouteManager, FilterManager, and Fitness classes in your code.

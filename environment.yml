@@ -7,4 +7,7 @@ dependencies:
   - osmnx
   - flake8
   - black
+  - pytest
+  - flake8-docstrings
+  - pytest-cov
 prefix: /Users/francoisdev/anaconda3/envs/route_manager
