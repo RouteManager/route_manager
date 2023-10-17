@@ -263,24 +263,15 @@ class Fitness:
         float
             The score for the road type criterion. The score is higher for
             preferable road types and lower for less preferable ones.
+            The score range is between 0 and 1.
         """
-        G = route_attributes["route_graph"]
-        # highways = nx.get_edge_attributes(G, "highway")
-        # lengths = nx.get_edge_attributes(G, "length")
-
-        # # Initialize a dictionary to store total lengths for each type of
-        # # highway
-        # highway_lengths = defaultdict(float)
-
-        # # Calculate the total length for each type of highway
-        # for edge, highway in highways.items():
-        #     if edge in lengths:
-        #         highway_lengths[highway] += lengths[edge]
-
-        highway_lengths = calcs.path_length_over_weight(
-            G, route_attributes["path"], "highway"
+        # Find the cumulative edge length for each type of highway found along
+        # the path in the graph.
+        highway_lengths = calcs.calculate_path_lengths_by_edge_attribute(
+            route_attributes["route_graph"], route_attributes["path"], "highway"
         )
 
+        # Use the highway type and distances to calculate a score
         return calcs.calculate_road_type_score(highway_lengths)
 
     def _calculate_number_of_junctions_score(
@@ -503,12 +494,6 @@ class Fitness:
                 route_attributes
             ),
         }
-
-        # Check if any hard criteria are not met
-        if scores["desired_distance"] == float("-inf") or scores[
-            "uphill_sections"
-        ] == float("-inf"):
-            return float("-inf")
 
         # Calculate total fitness score
         for criterion, weight in self.weights.items():

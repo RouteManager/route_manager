@@ -6,16 +6,16 @@ import pytest
 @pytest.mark.parametrize(
     "distance, actual, variance, result",
     [
-        (1000, 1000, 100, 1.0),
-        (1000, 950, 100, 0.5),
-        (1000, 900, 100, 0.0),
-        (1000, 800, 100, float("-inf")),
-        (1000, 1050, 100, 0.5),
-        (1000, 1100, 100, 0.0),
-        (1000, 1200, 100, float("-inf")),
-        (1000, 100, 999, 0.09909),
-        (1000, 1, 100, float("-inf")),
-        (1, 1, 0.99, 1),
+        # 18km route, 5% (900m) variance either way.
+        (18000, 18000, 900, 1.00),  # Exactely on target
+        (18000, 17775, 900, 0.71),  #  225m under target
+        (18000, 17550, 900, 0.52),  #  450m under target
+        (18000, 17100, 900, 0.30),  #  900m under target
+        (18000, 16200, 900, 0.12),  # 1800m under target
+        (18000, 18225, 900, 0.71),  #  225m over target
+        (18000, 18450, 900, 0.52),  #  450m over target
+        (18000, 18900, 900, 0.30),  #  900m over target
+        (18000, 19800, 900, 0.12),  # 1800m over target
     ],
 )
 def test_calculate_distance_score(distance, actual, variance, result):
@@ -35,7 +35,7 @@ def test_calculate_distance_score(distance, actual, variance, result):
     """
     assert calcs.calculate_distance_score(
         distance, actual, variance
-    ) == pytest.approx(result, abs=1e-5)
+    ) == pytest.approx(result, abs=1e-2)
 
 
 @pytest.mark.parametrize(

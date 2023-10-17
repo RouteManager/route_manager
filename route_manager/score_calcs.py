@@ -1,27 +1,36 @@
 """Fitness score calculators."""
 import logging
 import numbers
+import math
 from typing import Any, List, Dict
 import networkx as nx
 from collections import defaultdict
 
 
-def calculate_distance_score(desired_dist, actual_dist, max_variance) -> float:
+def calculate_distance_score(
+    desired_dist, actual_dist, max_variance, penalty_severity=0.5
+) -> float:
     """
-    Calculate and return the score for the desired distance criterion.
+    Evaluate route fitness based on distance from desired distance.
 
-    This method calculates the score based on how close the route's
-    distance is to the desired distance. If the route's distance is
-    within a set error margin of the desired distance, a higher score is
-    returned. If it's outside this margin, the route is deemed unfit and a
-    score of negative infinity (`float('-inf')`) is returned.
+    Parameters
+    ----------
+    desired_dist: float
+        The desired distance for the route.
+    actual_dist: float
+        The actual distance of the route.
+    max_variance: float
+        The maximum allowed variance from the desired distance.
+    penalty_severity: float
+        The severity of the exponential penalty (higher values result in a
+        steeper penalty)
 
     Returns
     -------
     float
-        The score for the desired distance criterion. If the route's
-        distance is outside the set error margin of the desired distance,
-        it returns negative infinity (`float('-inf')`).
+        Normalized route score between 0 and 1, with lower scores indicating
+        larger deviations from the desired distance and a sigmoid penalty
+        for exceeding the maximum variance.
     """
     if not isinstance(desired_dist, numbers.Number):
         msg = f"desired_dist must of type numbers.Numeric"
@@ -57,104 +66,133 @@ def calculate_distance_score(desired_dist, actual_dist, max_variance) -> float:
         raise ValueError(msg)
 
     actual_variance = abs(desired_dist - actual_dist)
-    if actual_variance > max_variance:
-        score = float("-inf")
-    else:
-        score = float(1 - actual_variance / max_variance)
 
-    logging.warning(
-        f"Route distance: {desired_dist}/{actual_dist}, "
-        f"Route variance: {actual_variance}/{max_variance}, "
-        f"Score: {score}"
+    # Apply an exponential penalty factor that starts at 1 when variance is zero
+    penalty_factor = math.exp(
+        -1 * penalty_severity * actual_variance / max_variance
+    )
+    score = penalty_factor * (
+        1 - actual_variance / (max_variance + actual_variance)
     )
 
+    # Clamp the score between 0 and 1
+    score = min(max(score, 0), 1)
     return score
 
 
 def calculate_road_type_score(highway_lengths: dict[float]) -> float:
     """
-    Calculate score for road type.
+    Evaluate route fitness based on highway type composition.
 
     Parameters
     ----------
-    highway_lengths : dict[float]
-        A dictionary providing a breakdown of distance by highway type
+    highway_lengths: dict[float]
+        Dictionary mapping highway types to their lengths in the route.
 
     Returns
     -------
     float
-        The score for the road type criterion.
-
+        Normalized route score between 0 and 1, with lower scores indicating
+        less desirable highway types and a significant penalty for prohibited
+        sections.
     """
+    # Weight classifications for diffirent type of highways.
+    OPTIMAL = 4
     PREFER = 3
-    AVERAGE = 2
+    NEUTRAL = 2
     AVOID = 1
-    BANNED = 0
+    PROHIBIT = 0
+
+    # Non-linear penalty factor applied to routes containing a prohibited
+    # section.
+    PENALTY_FACTOR = 0.1
+
     # https://wiki.openstreetmap.org/wiki/Key:highway
     highway_weights = {
-        "motorway": BANNED,
-        "trunk": AVERAGE,
+        "motorway": PROHIBIT,
+        "trunk": NEUTRAL,
         "primary": PREFER,
         "secondary": PREFER,
         "tertiary": PREFER,
         "unclassified": PREFER,
-        "motorway_link": BANNED,
-        "trunk_link": AVERAGE,
+        "motorway_link": PROHIBIT,
+        "trunk_link": NEUTRAL,
         "primary_link": PREFER,
         "secondary_link": PREFER,
         "tertiary_link": PREFER,
         "living_street": PREFER,
         "service": AVOID,
         "track": AVOID,
-        "bus_guideway": BANNED,
+        "bus_guideway": PROHIBIT,
         "road": PREFER,
         "footway": AVOID,
-        "bridleway": BANNED,
-        "steps": BANNED,
+        "bridleway": PROHIBIT,
+        "steps": PROHIBIT,
         "corridor": AVOID,
-        "path": BANNED,
-        "via_ferrata": BANNED,
-        "escape": BANNED,
-        "raceway": BANNED,
+        "path": PROHIBIT,
+        "via_ferrata": PROHIBIT,
+        "escape": PROHIBIT,
+        "raceway": PROHIBIT,
         "pedestrian": AVOID,
         "residential": PREFER,
         "cycleway": AVOID,
-        "proposed": BANNED,
-        "construction": BANNED,
+        "proposed": PROHIBIT,
+        "construction": PROHIBIT,
     }
 
     # Calculate total fitness score
     route_score = 0.0
     length = 0.0
+    prohibited_length = 0.0
+
     for highway, weight in highway_weights.items():
-        route_score += weight * highway_lengths[highway]
-        length += highway_lengths[highway]
+        if highway in highway_lengths:
+            if weight == PROHIBIT:
+                prohibited_length += highway_lengths[highway]
+            else:
+                route_score += weight * highway_lengths[highway]
+            length += highway_lengths[highway]
+        else:
+            logging.warning(
+                "OSM highway ({highway}) not found in `highway_weights`."
+            )
 
-    score = route_score / (length * PREFER)
+    if prohibited_length > 0:
+        # Apply a non-linear penalty factor to significantly reduce the score
+        route_score *= PENALTY_FACTOR
+        logging.warning(
+            f"Route contains {prohibited_length} meters of PROHIBIT highway. "
+            f"A penalty factor of {PENALTY_FACTOR} is applied."
+        )
 
-    return score
+    if length == 0:
+        route_score = 0
+    else:
+        route_score /= length * OPTIMAL
+
+    return route_score
 
 
-def path_length_over_weight(
-    G: nx.MultiDiGraph, path: List[Any], weight: str
+def calculate_path_lengths_by_edge_attribute(
+    G: nx.MultiDiGraph, path: List[Any], edge_attribute: str
 ) -> Dict[str, float]:
     """
-    Calculate the total length for each 'weight' category in the given path.
+    Aggregate edge lengths by discrete edge attribute values along a path.
 
     Parameters
     ----------
-    G : nx.MultiDiGraph
-        The graph on which to calculate path lengths.
-    path : list
-        The path for which to calculate lengths.
-    weight : str
-        The edge attribute to calculate total distance for.
+    G: nx.MultiDiGraph
+        The input graph.
+    path: List[Any]
+        The path through the graph, represented as a list of nodes.
+    edge_attribute: str
+        The name of the edge attribute to consider.
 
     Returns
     -------
-    dict
-        A dictionary where keys are categories of the weight attribute and
-        values are their total lengths.
+    Dict[str, float]
+        A dictionary mapping each discrete value of the edge attribute to the
+        sum of edge lengths for that value along the path.
 
     Raises
     ------
@@ -165,19 +203,25 @@ def path_length_over_weight(
         raise nx.NetworkXNoPath("path does not exist")
 
     multigraph = G.is_multigraph()
-    highway_lengths = defaultdict(float)
+    attribute_lengths = defaultdict(float)
 
     for node, nbr in nx.utils.pairwise(path):
         if multigraph:
             length = float("inf")
             for v in G[node][nbr].values():
+                # If there are multiple edges with the same minimum length,
+                # select the first one. This is because the order of edges in a
+                # multigraph is arbitrary, and selecting the first one ensures
+                # consistent behavior regardless of the edge order.
                 if "length" in v and v["length"] < length:
-                    highway = v[weight]
+                    highway = v[edge_attribute]
                     length = v["length"]
             if length != float("inf"):
-                highway_lengths[highway] += length
+                attribute_lengths[highway] += length
         else:
             if "length" in G[node][nbr]:
-                highway_lengths[G[node][nbr][weight]] += G[node][nbr]["length"]
+                attribute_lengths[G[node][nbr][edge_attribute]] += G[node][nbr][
+                    "length"
+                ]
 
-    return highway_lengths
+    return attribute_lengths
