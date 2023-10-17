@@ -87,15 +87,40 @@ def calculate_road_type_score(highway_lengths: dict[float]) -> float:
 
     """
     PREFER = 3
-    OK = 2
+    AVERAGE = 2
     AVOID = 1
+    BANNED = 0
+    # https://wiki.openstreetmap.org/wiki/Key:highway
     highway_weights = {
+        "motorway": BANNED,
+        "trunk": AVERAGE,
         "primary": PREFER,
+        "secondary": PREFER,
+        "tertiary": PREFER,
+        "unclassified": PREFER,
+        "motorway_link": BANNED,
+        "trunk_link": AVERAGE,
+        "primary_link": PREFER,
+        "secondary_link": PREFER,
+        "tertiary_link": PREFER,
+        "living_street": PREFER,
+        "service": AVOID,
+        "track": AVOID,
+        "bus_guideway": BANNED,
+        "road": PREFER,
+        "footway": AVOID,
+        "bridleway": BANNED,
+        "steps": BANNED,
+        "corridor": AVOID,
+        "path": BANNED,
+        "via_ferrata": BANNED,
+        "escape": BANNED,
+        "raceway": BANNED,
+        "pedestrian": AVOID,
         "residential": PREFER,
         "cycleway": AVOID,
-        "pedestrian": AVOID,
-        "footway": AVOID,
-        "trunk": OK,
+        "proposed": BANNED,
+        "construction": BANNED,
     }
 
     # Calculate total fitness score
