@@ -7,9 +7,7 @@ import networkx as nx
 from collections import defaultdict
 
 
-def calculate_distance_score(
-    desired_dist, actual_dist, max_variance, penalty_severity=0.5
-) -> float:
+def calculate_distance_score(desired_dist, actual_dist, max_variance) -> float:
     """
     Evaluate route fitness based on distance from desired distance.
 
@@ -21,9 +19,6 @@ def calculate_distance_score(
         The actual distance of the route.
     max_variance: float
         The maximum allowed variance from the desired distance.
-    penalty_severity: float
-        The severity of the exponential penalty (higher values result in a
-        steeper penalty)
 
     Returns
     -------
@@ -65,18 +60,19 @@ def calculate_distance_score(
         )
         raise ValueError(msg)
 
+    PENALTY_FACTOR = 0.01
+
     actual_variance = abs(desired_dist - actual_dist)
+    score = 1 - actual_variance / (max_variance + actual_variance)
 
-    # Apply an exponential penalty factor that starts at 1 when variance is zero
-    penalty_factor = math.exp(
-        -1 * penalty_severity * actual_variance / max_variance
-    )
-    score = penalty_factor * (
-        1 - actual_variance / (max_variance + actual_variance)
-    )
+    if actual_variance > max_variance:
+        # Apply a non-linear penalty factor to significantly reduce the score
+        score *= PENALTY_FACTOR
+        logging.warning(
+            f"Route length of {actual_dist} is longer than the required "
+            f"distance and variance of {desired_dist} +- {max_variance}"
+        )
 
-    # Clamp the score between 0 and 1
-    score = min(max(score, 0), 1)
     return score
 
 

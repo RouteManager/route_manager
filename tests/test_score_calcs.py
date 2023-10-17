@@ -8,14 +8,14 @@ import pytest
     [
         # 18km route, 5% (900m) variance either way.
         (18000, 18000, 900, 1.00),  # Exactely on target
-        (18000, 17775, 900, 0.71),  #  225m under target
-        (18000, 17550, 900, 0.52),  #  450m under target
-        (18000, 17100, 900, 0.30),  #  900m under target
-        (18000, 16200, 900, 0.12),  # 1800m under target
-        (18000, 18225, 900, 0.71),  #  225m over target
-        (18000, 18450, 900, 0.52),  #  450m over target
-        (18000, 18900, 900, 0.30),  #  900m over target
-        (18000, 19800, 900, 0.12),  # 1800m over target
+        (18000, 17775, 900, 0.80),  #  225m under target
+        (18000, 17550, 900, 0.66),  #  450m under target
+        (18000, 17100, 900, 0.50),  #  900m under target
+        (18000, 16200, 900, 0.003),  # 1800m under target
+        (18000, 18225, 900, 0.80),  #  225m over target
+        (18000, 18450, 900, 0.66),  #  450m over target
+        (18000, 18900, 900, 0.50),  #  900m over target
+        (18000, 19800, 900, 0.003),  # 1800m over target
     ],
 )
 def test_calculate_distance_score(distance, actual, variance, result):
