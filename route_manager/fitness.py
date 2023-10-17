@@ -1,7 +1,11 @@
 """Fitness function to calculate route fitness."""
+import logging
 import math
 import numbers
+import networkx as nx
 from typing import Dict
+from collections import defaultdict
+import route_manager.score_calcs as calcs
 from route_manager.constants import (
     MAX_INCLINE_PERCENT,
     MAX_DECLINE_PERCENT,
@@ -34,9 +38,10 @@ class Fitness:
     -------
     calculate_fitness():
         Calculates the fitness of a route based on the set criteria.
-    _calculate_desired_distance_score():
-        Calculates the score for the desired distance criterion.
-    _calculate_road_type_score():
+    _get_desired_distance_score():
+        Parse the route path and calculates the score for the desired distance
+        criterion.
+    _get_road_type_score():
         Calculates the score for the road type criterion.
     _calculate_number_of_junctions_score():
         Calculates the score for the number of junctions criterion.
@@ -217,15 +222,13 @@ class Fitness:
             return False
         return MIN_ROUTE_DISTANCE <= distance <= MAX_ROUTE_DISTANCE
 
-    def _calculate_desired_distance_score(self) -> float:
+    # Below are all the calculators
+    def _get_desired_distance_score(self, route_attributes: Dict) -> float:
         """
         Calculate and return the score for the desired distance criterion.
 
-        This method calculates the score based on how close the route's
-        distance is to the desired distance. If the route's distance is
-        within a set error margin of the desired distance, a higher score is
-        returned. If it's outside this margin, the route is deemed unfit and a
-        score of negative infinity (`float('-inf')`) is returned.
+        This methods parses the route to find its length and then return the
+        distance score calculated by `calculate_distance_score`
 
         Returns
         -------
@@ -234,10 +237,20 @@ class Fitness:
             distance is outside the set error margin of the desired distance,
             it returns negative infinity (`float('-inf')`).
         """
-        # TODO: Implement this method based on your specific requirements
-        return 0
+        try:
+            actual_distance = nx.path_weight(
+                route_attributes["route_graph"],
+                route_attributes["path"],
+                "length",
+            )
+        except:
+            raise
 
-    def _calculate_road_type_score(self) -> float:
+        return calcs.calculate_distance_score(
+            self.distance, actual_distance, self.dist_variance
+        )
+
+    def _get_road_type_score(self, route_attributes: Dict) -> float:
         """
         Calculate and return the score for the road type criterion.
 
@@ -251,10 +264,28 @@ class Fitness:
             The score for the road type criterion. The score is higher for
             preferable road types and lower for less preferable ones.
         """
-        # TODO: Implement this method based on your specific requirements
-        return 0
+        G = route_attributes["route_graph"]
+        # highways = nx.get_edge_attributes(G, "highway")
+        # lengths = nx.get_edge_attributes(G, "length")
 
-    def _calculate_number_of_junctions_score(self) -> float:
+        # # Initialize a dictionary to store total lengths for each type of
+        # # highway
+        # highway_lengths = defaultdict(float)
+
+        # # Calculate the total length for each type of highway
+        # for edge, highway in highways.items():
+        #     if edge in lengths:
+        #         highway_lengths[highway] += lengths[edge]
+
+        highway_lengths = calcs.path_length_over_weight(
+            G, route_attributes["path"], "highway"
+        )
+
+        return calcs.calculate_road_type_score(highway_lengths)
+
+    def _calculate_number_of_junctions_score(
+        self, route_attributes: Dict
+    ) -> float:
         """
         Calculate and return the score for the number of junctions criterion.
 
@@ -271,7 +302,9 @@ class Fitness:
         # TODO: Implement this method based on your specific requirements
         return 0
 
-    def _calculate_complexity_of_junctions_score(self) -> float:
+    def _calculate_complexity_of_junctions_score(
+        self, route_attributes: Dict
+    ) -> float:
         """
         Calculate and return the score for complex junctions criterion.
 
@@ -288,7 +321,7 @@ class Fitness:
         # TODO: Implement this method based on your specific requirements
         return 0
 
-    def _calculate_turns_score(self) -> float:
+    def _calculate_turns_score(self, route_attributes: Dict) -> float:
         """
         Calculate and return the score for the turns criterion.
 
@@ -306,7 +339,7 @@ class Fitness:
         # TODO: Implement this method based on your specific requirements
         return 0
 
-    def _calculate_uphill_sections_score(self) -> float:
+    def _calculate_uphill_sections_score(self, route_attributes: Dict) -> float:
         """
         Calculate and return the score for the uphill sections criterion.
 
@@ -325,7 +358,9 @@ class Fitness:
         # TODO: Implement this method based on your specific requirements
         return 0
 
-    def _calculate_downhill_sections_score(self) -> float:
+    def _calculate_downhill_sections_score(
+        self, route_attributes: Dict
+    ) -> float:
         """
         Calculate and return the score for the downhill sections criterion.
 
@@ -344,7 +379,7 @@ class Fitness:
         # TODO: Implement this method based on your specific requirements
         return 0
 
-    def _calculate_number_of_lanes_score(self) -> float:
+    def _calculate_number_of_lanes_score(self, route_attributes: Dict) -> float:
         """
         Calculate and return the score for the number of lanes criterion.
 
@@ -360,7 +395,7 @@ class Fitness:
         # TODO: Implement this method based on your specific requirements
         return 0
 
-    def _calculate_one_way_routes_score(self) -> float:
+    def _calculate_one_way_routes_score(self, route_attributes: Dict) -> float:
         """
         Calculate and return the score for the one-way routes criterion.
 
@@ -377,7 +412,7 @@ class Fitness:
         # TODO: Implement this method based on your specific requirements
         return 0
 
-    def _calculate_narrow_roads_score(self) -> float:
+    def _calculate_narrow_roads_score(self, route_attributes: Dict) -> float:
         """
         Calculate and return the score for the two-way roads.
 
@@ -394,7 +429,7 @@ class Fitness:
         # TODO: Implement this method based on your specific requirements
         return 0
 
-    def _calculate_downhills_with_lights(self) -> float:
+    def _calculate_downhills_with_lights(self, route_attributes: Dict) -> float:
         """
         Calculate and return the score for the downhill roads with lights.
 
@@ -423,7 +458,7 @@ class Fitness:
 
         Parameters
         ----------
-        data : dict
+        route_attributes : dict
             A dictionary containing the graph and route. The graph represents
             road infrastructure and the route is a list of nodes describing a
             route along the graph.
@@ -438,17 +473,35 @@ class Fitness:
 
         # Calculate scores for each criterion based on the route and graph
         scores = {
-            "desired_distance": self._calculate_desired_distance_score(),
-            "road_type": self._calculate_road_type_score(),
-            "number_of_junctions": self._calculate_number_of_junctions_score(),
-            "junctions": self._calculate_complexity_of_junctions_score(),
-            "turns": self._calculate_turns_score(),
-            "uphill_sections": self._calculate_uphill_sections_score(),
-            "downhill_sections": self._calculate_downhill_sections_score(),
-            "number_of_lanes": self._calculate_number_of_lanes_score(),
-            "one_way_routes": self._calculate_one_way_routes_score(),
-            "narrow_roads": self._calculate_narrow_roads_score(),
-            "downhills_with_lights": self._calculate_downhills_with_lights(),
+            "desired_distance": self._get_desired_distance_score(
+                route_attributes
+            ),
+            "road_type": self._get_road_type_score(route_attributes),
+            "number_of_junctions": self._calculate_number_of_junctions_score(
+                route_attributes
+            ),
+            "junctions": self._calculate_complexity_of_junctions_score(
+                route_attributes
+            ),
+            "turns": self._calculate_turns_score(route_attributes),
+            "uphill_sections": self._calculate_uphill_sections_score(
+                route_attributes
+            ),
+            "downhill_sections": self._calculate_downhill_sections_score(
+                route_attributes
+            ),
+            "number_of_lanes": self._calculate_number_of_lanes_score(
+                route_attributes
+            ),
+            "one_way_routes": self._calculate_one_way_routes_score(
+                route_attributes
+            ),
+            "narrow_roads": self._calculate_narrow_roads_score(
+                route_attributes
+            ),
+            "downhills_with_lights": self._calculate_downhills_with_lights(
+                route_attributes
+            ),
         }
 
         # Check if any hard criteria are not met

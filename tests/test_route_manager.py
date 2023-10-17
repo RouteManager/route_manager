@@ -7,9 +7,7 @@ from route_manager.route_manager import (
     MIN_ROUTE_DISTANCE,
     MAX_ROUTE_DISTANCE,
 )
-
-
-WELLINGTON_ARCH = (51.5025031, -0.15081986768597055)
+from tests.test_data import WELLINGTON_ARCH
 
 
 @pytest.fixture(scope="module")

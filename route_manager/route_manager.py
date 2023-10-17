@@ -216,8 +216,10 @@ class RouteManager:
         filename = self._construct_filename()
 
         if os.path.exists(filename):
+            logging.warning("Loading graph from disk.")
             self._load_graph_from_file(filename)
         else:
+            logging.warning("Loading graph from OSM API.")
             self._generate_graph()
             self._save_graph_to_file(filename)
 
