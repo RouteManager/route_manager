@@ -1,0 +1,14 @@
+services:
+  server:
+    build:
+      context: .
+      target: prod
+    develop:
+      watch:
+        - action: rebuild
+          path: ./requirements.txt
+    ports:
+      - 6001:6001
+    volumes:
+      - ./app.py:/app/app.py
+      - ./route_manager:/app/route_manager
