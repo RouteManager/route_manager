@@ -12,3 +12,4 @@ services:
     volumes:
       - ./app.py:/app/app.py
       - ./route_manager:/app/route_manager
+      - ./setup.cfg:/app/setup.cfg

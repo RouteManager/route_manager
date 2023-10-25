@@ -9,7 +9,7 @@ app = Flask(__name__)
 @app.route("/")
 def hello():
     route_manager.calc_fitness_for_routes()
-    return "Hello from Route Optimizer+ Running in port 6001."
+    return "Hello from Route Optimizer!! Running in port 6001."
 
 
 def handler(signum, frame):
