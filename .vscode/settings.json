@@ -3,5 +3,7 @@
         "tests"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "autoDocstring.startOnNewLine": true,
+    "autoDocstring.docstringFormat": "numpy"
 }
