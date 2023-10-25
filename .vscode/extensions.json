@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "ms-azuretools.vscode-docker",
+        "ms-python.python",
+        "njpwerner.autodocstring",
+        "ms-python.black-formatter",
+        "ryanluker.vscode-coverage-gutters",
+        "ms-python.flake8",
+        "cameron.vscode-pytest"
+    ]
+}

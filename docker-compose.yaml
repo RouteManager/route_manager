@@ -2,7 +2,7 @@ services:
   server:
     build:
       context: .
-      target: prod
+      target: dev
     ports:
       - 6001:6001
     volumes:
