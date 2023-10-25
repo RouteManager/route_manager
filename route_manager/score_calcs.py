@@ -148,9 +148,13 @@ def calculate_road_type_score(highway_lengths: dict[float]) -> float:
             else:
                 route_score += weight * highway_lengths[highway]
             length += highway_lengths[highway]
-        else:
             logging.warning(
-                "OSM highway ({highway}) not found in `highway_weights`."
+                f"{highway_lengths[highway]:.2f} meters of "
+                f"{highway} found for route."
+            )
+        else:
+            logging.info(
+                f"OSM highway ({highway}) not found in `highway_lengths`."
             )
 
     if prohibited_length > 0:

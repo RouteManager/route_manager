@@ -1,7 +1,7 @@
-black
-flake8
-flake8-docstrings
-osmnx
-pytest
-pytest-cov
-flask
+black==23.10.1
+flake8==6.1.0
+flake8-docstrings==1.7.0
+osmnx==1.7.0
+pytest==7.4.3
+pytest-cov==4.1.0
+Flask==3.0.0

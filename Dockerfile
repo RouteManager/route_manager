@@ -1,6 +1,11 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.11-slim-bookworm
+# Enable this to install OSMNX prior to installing requirements.txt
+# This greatly speeds up rebuilding of the container if
+# changes are made to requirements.txt during dev process
+ARG BASE=-with-osmnx
+
+ARG PYTHON_VERSION=3.11-bookworm
 FROM python:${PYTHON_VERSION} as base
 
 # Prevents Python from writing pyc files.
@@ -16,36 +21,32 @@ EXPOSE 6001
 # Upgrade pip and create non-root user
 ARG UID=10001
 RUN pip install --upgrade pip \
-    && adduser --disabled-password --gecos "" --uid "${UID}" appuser
-
-
-# Install gcc and osmnx package, which depends on gdal. Gdal has
-# complex dependancies and take a long time to install so is done 
-# in a separate layer to speed up installation of other deps during
-# develoment. Remove gcc after osmnx is installed
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y dumb-init libgdal-dev gcc g++ \
-    && pip install osmnx \
+    && apt-get update \
+    && apt-get install --no-install-recommends -y dumb-init libgdal-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get remove -y gcc g++ \
-    && apt-get -y autoremove
+    && adduser --disabled-password --gecos "" --uid "${UID}" appuser 
 
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 USER appuser
 
-# Install the remainder of the dependancies
-COPY --chown=appuser:appuser  ./requirements.txt ./
-RUN python -m pip install --no-cache -r requirements.txt
-    
-# Switch to non-root user
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+FROM base AS base-with-osmnx
+RUN pip install --no-cache osmnx
+
+FROM base${BASE} AS requirements
+COPY  --chown=appuser:appuser ./requirements.txt ./
+RUN pip install --no-cache -r requirements.txt
 
 # The code base is share by ALL environmnets 
 # to ensure the same code ships to prod as was
 # developed and tested against.
-FROM base as code
+FROM requirements as code
 COPY  --chown=appuser:appuser . .
 CMD python app.py
 
-# Create prod env from shared code environment
+# Create PROD env from shared code environment
 FROM code as prod
+CMD python app.py
+
+# Create DEV env from shared code environment
+FROM code as dev
 CMD python app.py
